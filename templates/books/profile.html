@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}{{ target_user.username }}'s Profile — Folio{% endblock %}
+
+{% block content %}
+<!-- PROFILE HEADER -->
+<div style="background:linear-gradient(135deg,#1a1208,#3a2810);border-radius:16px;padding:2.5rem;margin-bottom:2rem;color:var(--paper);display:flex;align-items:center;gap:2rem;flex-wrap:wrap;">
+  <div class="avatar avatar-lg" style="background:var(--amber);color:#fff;font-size:2rem;flex-shrink:0;">
+    {% if profile.avatar %}
+      <img src="{{ profile.avatar.url }}" alt="{{ target_user.username }}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">
+    {% else %}
+      {{ target_user.username|first|upper }}
+    {% endif %}
+  </div>
+  <div style="flex:1;">
+    <h1 style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;margin-bottom:0.2rem;">{{ target_user.username }}</h1>
+    {% if target_user.first_name or target_user.last_name %}
+    <p style="color:rgba(250,246,239,0.7);margin-bottom:0.5rem;">{{ target_user.first_name }} {{ target_user.last_name }}</p>
+    {% endif %}
+    {% if profile.bio %}
+    <p style="color:rgba(250,246,239,0.8);font-size:0.95rem;max-width:500px;">{{ profile.bio }}</p>
+    {% endif %}
+    <div style="display:flex;gap:1.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+      <span style="color:rgba(250,246,239,0.7);font-size:0.85rem;">
+        📚 <strong style="color:var(--paper);">{{ profile.books_read }}</strong> books reviewed
+      </span>
+      {% if profile.favorite_genre %}
+      <span style="color:rgba(250,246,239,0.7);font-size:0.85rem;">
+        ❤️ Loves <strong style="color:var(--paper);">{{ profile.get_favorite_genre_display }}</strong>
+      </span>
+      {% endif %}
+      {% if profile.average_rating_given %}
+      <span style="color:rgba(250,246,239,0.7);font-size:0.85rem;">
+        ⭐ Avg rating: <strong style="color:var(--paper);">{{ profile.average_rating_given }}</strong>
+      </span>
+      {% endif %}
+      <span style="color:rgba(250,246,239,0.7);font-size:0.85rem;">
+        🗓 Joined {{ target_user.date_joined|date:"M Y" }}
+      </span>
+    </div>
+  </div>
+  {% if user == target_user %}
+  <a href="{% url 'profile_edit' %}" class="btn btn-secondary" style="flex-shrink:0;">✏️ Edit Profile</a>
+  {% endif %}
+</div>
+
+<!-- READING GOAL -->
+{% if profile.reading_goal %}
+<div style="background:#fff;border-radius:12px;padding:1.25rem;box-shadow:var(--shadow);margin-bottom:2rem;">
+  <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+    <span style="font-weight:600;font-size:0.9rem;">Reading Goal {{ target_user.date_joined|date:"Y" }}</span>
+    <span style="font-size:0.85rem;color:var(--text-muted);">{{ profile.books_read }} / {{ profile.reading_goal }} books</span>
+  </div>
+  {% with pct=profile.books_read|floatformat:"0" %}
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" style="width:{% if profile.books_read >= profile.reading_goal %}100{% else %}{{ profile.books_read|floatformat:"0" }}00{% endif %}%;transition:width 0.5s;"></div>
+  </div>
+  {% endwith %}
+</div>
+{% endif %}
+
+<!-- TABS: REVIEWS | READING LIST -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('reviews',this)">Reviews ({{ reviews.count }})</button>
+  <button class="tab" onclick="showTab('want',this)">Want to Read ({{ reading_by_status.want.count }})</button>
+  <button class="tab" onclick="showTab('reading',this)">Currently Reading ({{ reading_by_status.reading.count }})</button>
+  <button class="tab" onclick="showTab('read',this)">Read ({{ reading_by_status.read.count }})</button>
+</div>
+
+<div id="tab-reviews" class="tab-content active">
+  {% if reviews %}
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+    {% for review in reviews %}
+    <div class="review-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;">
+        <a href="{{ review.book.get_absolute_url }}" style="font-family:'Playfair Display',serif;font-weight:700;font-size:1.05rem;color:var(--ink);">{{ review.book.title }}</a>
+        <div class="stars" style="font-size:0.9rem;">
+          {% for i in "12345" %}
+            {% if forloop.counter <= review.rating %}
+              <span class="star-full"></span>
+            {% else %}
+              <span class="star-empty"></span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">by {{ review.book.author }} · {{ review.created_at|date:"M j, Y" }}</div>
+      <div class="review-card-title">{{ review.title }}</div>
+      <div class="review-card-body">{{ review.body|truncatewords:50 }}
+        <a href="{{ review.book.get_absolute_url }}#review-{{ review.pk }}" style="font-size:0.85rem;margin-left:0.5rem;">Read more →</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">💬</div><p>No reviews yet.</p></div>
+  {% endif %}
+</div>
+
+{% for status_key, status_label in status_map.items %}{% endfor %}
+
+<div id="tab-want" class="tab-content">
+  {% if reading_by_status.want %}
+  <div class="grid-4">
+    {% for entry in reading_by_status.want %}
+    <a href="{{ entry.book.get_absolute_url }}" style="text-decoration:none;color:inherit;">
+      <div class="card book-card">
+        <div class="book-cover">
+          {% if entry.book.cover_image %}<img src="{{ entry.book.cover_image.url }}" alt="{{ entry.book.title }}">
+          {% else %}<div class="book-cover-placeholder">📖</div>{% endif %}
+        </div>
+        <div class="card-body">
+          <div class="book-title">{{ entry.book.title }}</div>
+          <div class="book-author">{{ entry.book.author }}</div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">📌</div><p>No books on the want-to-read list.</p></div>
+  {% endif %}
+</div>
+
+<div id="tab-reading" class="tab-content">
+  {% if reading_by_status.reading %}
+  <div class="grid-4">
+    {% for entry in reading_by_status.reading %}
+    <a href="{{ entry.book.get_absolute_url }}" style="text-decoration:none;color:inherit;">
+      <div class="card book-card">
+        <div class="book-cover">
+          {% if entry.book.cover_image %}<img src="{{ entry.book.cover_image.url }}" alt="{{ entry.book.title }}">
+          {% else %}<div class="book-cover-placeholder">📖</div>{% endif %}
+        </div>
+        <div class="card-body">
+          <div class="book-title">{{ entry.book.title }}</div>
+          <div class="book-author">{{ entry.book.author }}</div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">📖</div><p>Not currently reading anything.</p></div>
+  {% endif %}
+</div>
+
+<div id="tab-read" class="tab-content">
+  {% if reading_by_status.read %}
+  <div class="grid-4">
+    {% for entry in reading_by_status.read %}
+    <a href="{{ entry.book.get_absolute_url }}" style="text-decoration:none;color:inherit;">
+      <div class="card book-card">
+        <div class="book-cover">
+          {% if entry.book.cover_image %}<img src="{{ entry.book.cover_image.url }}" alt="{{ entry.book.title }}">
+          {% else %}<div class="book-cover-placeholder">📖</div>{% endif %}
+        </div>
+        <div class="card-body">
+          <div class="book-title">{{ entry.book.title }}</div>
+          <div class="book-author">{{ entry.book.author }}</div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">✅</div><p>No completed books listed yet.</p></div>
+  {% endif %}
+</div>
+
+<style>
+/* Pure CSS tab switching via :target and checkbox trick — using inline style attr toggle via form buttons */
+</style>
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+{% endblock %}

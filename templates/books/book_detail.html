@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}{{ book.title }} — Folio{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{% url 'book_list' %}">Books</a> /
+  <span>{{ book.title }}</span>
+</div>
+
+<div style="display:grid;grid-template-columns:220px 1fr;gap:2.5rem;margin-bottom:3rem;align-items:start;">
+  <!-- COVER -->
+  <div>
+    <div style="border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);aspect-ratio:2/3;background:var(--cream);">
+      {% if book.cover_image %}
+        <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" style="width:100%;height:100%;object-fit:cover;">
+      {% else %}
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:4rem;background:linear-gradient(135deg,var(--cream),var(--mist));">📖</div>
+      {% endif %}
+    </div>
+
+    <!-- READING LIST WIDGET -->
+    {% if user.is_authenticated %}
+    <div style="margin-top:1rem;">
+      <form method="POST" action="{% url 'reading_list_update' book.pk %}">
+        {% csrf_token %}
+        <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.5rem;color:var(--text-muted);">My Reading List:</div>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;">
+          <button type="submit" name="status" value="want" class="btn btn-sm {% if reading_status == 'want' %}btn-primary{% else %}btn-secondary{% endif %}" style="text-align:left;">📌 Want to Read</button>
+          <button type="submit" name="status" value="reading" class="btn btn-sm {% if reading_status == 'reading' %}btn-primary{% else %}btn-secondary{% endif %}" style="text-align:left;">📖 Currently Reading</button>
+          <button type="submit" name="status" value="read" class="btn btn-sm {% if reading_status == 'read' %}btn-primary{% else %}btn-secondary{% endif %}" style="text-align:left;">✅ Read It</button>
+          {% if reading_status %}
+          <button type="submit" name="status" value="remove" class="btn btn-sm btn-danger" style="text-align:left;">🗑 Remove</button>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- ADMIN ACTIONS -->
+    {% if user.is_authenticated and book.added_by == user or user.is_staff %}
+    <div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.5rem;">
+      <a href="{% url 'book_edit' book.pk %}" class="btn btn-secondary btn-sm">✏️ Edit Book</a>
+      <a href="{% url 'book_delete' book.pk %}" class="btn btn-danger btn-sm">🗑 Delete</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- BOOK INFO -->
+  <div>
+    <div style="margin-bottom:0.5rem;">
+      <span class="genre-badge" style="font-size:0.82rem;">{{ book.get_genre_display }}</span>
+      {% if book.published_year %}
+      <span style="font-size:0.82rem;color:var(--text-muted);margin-left:0.5rem;">{{ book.published_year }}</span>
+      {% endif %}
+    </div>
+    <h1 style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;line-height:1.2;margin-bottom:0.4rem;">{{ book.title }}</h1>
+    <p style="font-size:1.1rem;color:var(--text-muted);margin-bottom:1.25rem;">by <strong style="color:var(--ink);">{{ book.author }}</strong></p>
+
+    <!-- RATING SUMMARY -->
+    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;padding:1rem;background:#fff;border-radius:12px;box-shadow:var(--shadow);">
+      {% if book.average_rating %}
+      <div style="text-align:center;">
+        <div style="font-family:'Playfair Display',serif;font-size:3rem;font-weight:900;color:var(--amber);line-height:1;">{{ book.average_rating }}</div>
+        <div class="stars" style="font-size:1.1rem;">
+          {% for star in book.star_display %}
+            <span class="star-{{ star }}"></span>
+          {% endfor %}
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem;">{{ book.review_count }} review{{ book.review_count|pluralize }}</div>
+      </div>
+      <div style="flex:1;">
+        {% for score, data in rating_breakdown.items reversed %}
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
+          <span style="font-size:0.78rem;width:10px;text-align:right;">{{ score }}</span>
+          <span style="font-size:0.75rem;color:var(--amber);">★</span>
+          <div class="progress-bar-wrap" style="flex:1;">
+            <div class="progress-bar-fill" style="width:{{ data.pct }}%;"></div>
+          </div>
+          <span style="font-size:0.75rem;color:var(--text-muted);width:20px;">{{ data.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--text-muted);font-size:0.9rem;">No ratings yet. Be the first to review!</p>
+      {% endif %}
+    </div>
+
+    {% if book.description %}
+    <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0.6rem;">About this Book</h3>
+    <p style="color:#3a2e1a;line-height:1.8;margin-bottom:1.5rem;">{{ book.description }}</p>
+    {% endif %}
+
+    {% if book.isbn %}
+    <p style="font-size:0.82rem;color:var(--text-muted);">ISBN: {{ book.isbn }}</p>
+    {% endif %}
+    {% if book.added_by %}
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-top:0.3rem;">Added by <a href="{% url 'profile' book.added_by.username %}">{{ book.added_by.username }}</a></p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- WRITE A REVIEW -->
+{% if user.is_authenticated %}
+<div id="write-review" style="background:#fff;border-radius:12px;padding:1.75rem;box-shadow:var(--shadow);margin-bottom:2.5rem;">
+  <h2 style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:1.25rem;">
+    {% if user_review %}Edit Your Review{% else %}Write a Review{% endif %}
+  </h2>
+  <form method="POST" action="{% url 'review_submit' book.pk %}">
+    {% csrf_token %}
+    <div class="form-group">
+      <label>Your Rating</label>
+      <div class="star-rating-widget">
+        {% for value, label in review_form.rating.field.choices %}
+        <input type="radio" name="rating" id="star{{ value }}" value="{{ value }}" {% if review_form.rating.value == value|stringformat:"s" %}checked{% elif user_review and user_review.rating == value %}checked{% endif %}>
+        <label for="star{{ value }}" title="{{ value }} star{{ value|pluralize }}">★</label>
+        {% endfor %}
+      </div>
+      {% if review_form.rating.errors %}<ul class="errorlist">{% for e in review_form.rating.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-group">
+      <label for="{{ review_form.title.id_for_label }}">Review Title</label>
+      {{ review_form.title }}
+      {% if review_form.title.errors %}<ul class="errorlist">{% for e in review_form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-group">
+      <label for="{{ review_form.body.id_for_label }}">Your Review</label>
+      {{ review_form.body }}
+      {% if review_form.body.errors %}<ul class="errorlist">{% for e in review_form.body.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div style="display:flex;gap:0.75rem;">
+      <button type="submit" class="btn btn-primary">{% if user_review %}Update Review{% else %}Post Review{% endif %}</button>
+      {% if user_review %}
+      <a href="{% url 'review_delete' user_review.pk %}" class="btn btn-danger" onclick="return confirm('Delete your review?')">Delete</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% else %}
+<div style="text-align:center;padding:2rem;background:#fff;border-radius:12px;box-shadow:var(--shadow);margin-bottom:2.5rem;">
+  <p style="margin-bottom:1rem;color:var(--text-muted);">Sign in to write a review</p>
+  <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary">Sign In</a>
+  <a href="{% url 'register' %}" class="btn btn-secondary" style="margin-left:0.5rem;">Create Account</a>
+</div>
+{% endif %}
+
+<!-- ALL REVIEWS -->
+<section>
+  <div class="section-title">Reviews ({{ book.review_count }})</div>
+  {% if reviews %}
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    {% for review in reviews %}
+    <div class="review-card" id="review-{{ review.pk }}">
+      <div class="review-card-header">
+        <div class="avatar avatar-sm" style="flex-shrink:0;">{{ review.user.username|first|upper }}</div>
+        <div class="review-card-meta" style="flex:1;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+            <div>
+              <a href="{% url 'profile' review.user.username %}" class="review-card-user">{{ review.user.username }}</a>
+              <span style="font-size:0.8rem;color:var(--text-muted);margin-left:0.5rem;">{{ review.created_at|date:"M j, Y" }}</span>
+            </div>
+            <div class="stars" style="font-size:1rem;">
+              {% for i in "12345" %}
+                {% if forloop.counter <= review.rating %}
+                  <span class="star-full"></span>
+                {% else %}
+                  <span class="star-empty"></span>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="review-card-title">{{ review.title }}</div>
+      <div class="review-card-body">{{ review.body }}</div>
+      <div style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:0.82rem;color:var(--text-muted);">{{ review.like_count }} helpful</span>
+        {% if user.is_authenticated and review.user != user %}
+        <form method="POST" action="{% url 'review_like' review.pk %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-secondary">👍 Helpful</button>
+        </form>
+        {% endif %}
+        {% if user.is_authenticated and review.user == user %}
+        <a href="#write-review" class="btn btn-sm btn-secondary">Edit</a>
+        {% endif %}
+        {% if user.is_staff %}
+        <a href="{% url 'review_delete' review.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Delete this review?')">Delete</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">💬</div>
+    <p>No reviews yet. Be the first!</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

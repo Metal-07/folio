@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Book — Folio{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+  <div class="breadcrumb">
+    <a href="{% url 'book_list' %}">Books</a> /
+    {% if book %}<a href="{{ book.get_absolute_url }}">{{ book.title }}</a> / {% endif %}
+    <span>{{ action }} Book</span>
+  </div>
+
+  <div class="page-header">
+    <h1>{{ action }} a Book</h1>
+    <p>{% if action == 'Add' %}Share a great book with the community.{% else %}Update the book's details.{% endif %}</p>
+  </div>
+
+  <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:var(--shadow);">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="{{ form.title.id_for_label }}">Book Title *</label>
+          {{ form.title }}
+          {% if form.title.errors %}<ul class="errorlist">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="{{ form.author.id_for_label }}">Author *</label>
+          {{ form.author }}
+          {% if form.author.errors %}<ul class="errorlist">{% for e in form.author.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.genre.id_for_label }}">Genre</label>
+          {{ form.genre }}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.published_year.id_for_label }}">Published Year</label>
+          {{ form.published_year }}
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="{{ form.description.id_for_label }}">Description</label>
+          {{ form.description }}
+          <div class="form-help">A brief synopsis or your thoughts on the book.</div>
+        </div>
+        <div class="form-group">
+          <label for="{{ form.isbn.id_for_label }}">ISBN</label>
+          {{ form.isbn }}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.cover_image.id_for_label }}">Cover Image</label>
+          {{ form.cover_image }}
+          {% if book and book.cover_image %}
+          <div style="margin-top:0.5rem;">
+            <img src="{{ book.cover_image.url }}" style="height:80px;border-radius:4px;">
+            <div class="form-help">Upload a new image to replace.</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+        <button type="submit" class="btn btn-primary">{{ action }} Book</button>
+        {% if book %}
+        <a href="{{ book.get_absolute_url }}" class="btn btn-secondary">Cancel</a>
+        {% else %}
+        <a href="{% url 'book_list' %}" class="btn btn-secondary">Cancel</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

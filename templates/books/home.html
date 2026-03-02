@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Folio — Discover & Review Books{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<section style="text-align:center;padding:4rem 0 3rem;background:linear-gradient(135deg,#1a1208 0%,#3a2810 100%);margin:-2.5rem -1.5rem 2.5rem;border-radius:16px;color:var(--paper);">
+  <p style="text-transform:uppercase;letter-spacing:4px;font-size:0.78rem;color:var(--amber);margin-bottom:1rem;">Welcome to Folio</p>
+  <h1 style="font-family:'Playfair Display',serif;font-size:3.2rem;font-weight:900;line-height:1.15;max-width:640px;margin:0 auto 1rem;">
+    Read. Review.<br><em>Connect.</em>
+  </h1>
+  <p style="color:rgba(250,246,239,0.7);max-width:480px;margin:0 auto 2rem;font-size:1.05rem;">
+    Join thousands of readers sharing honest reviews, building reading lists, and discovering their next great book.
+  </p>
+  <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+    <a href="{% url 'book_list' %}" class="btn btn-primary" style="font-size:1rem;padding:0.7rem 1.75rem;">Browse Books</a>
+    {% if not user.is_authenticated %}
+    <a href="{% url 'register' %}" class="btn btn-secondary" style="font-size:1rem;padding:0.7rem 1.75rem;">Join the Community</a>
+    {% endif %}
+  </div>
+</section>
+
+<!-- STATS -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:3rem;">
+  <div class="stat-box">
+    <div class="stat-num">{{ stats.books }}</div>
+    <div class="stat-label">Books Listed</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num">{{ stats.reviews }}</div>
+    <div class="stat-label">Reviews Written</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num">{{ stats.members }}</div>
+    <div class="stat-label">Members</div>
+  </div>
+</div>
+
+<!-- TOP RATED -->
+{% if top_books %}
+<section style="margin-bottom:3rem;">
+  <div class="section-title">
+    ⭐ Top Rated Books
+    <a href="{% url 'book_list' %}?sort=rating">See all →</a>
+  </div>
+  <div class="grid-4">
+    {% for book in top_books %}
+    <a href="{{ book.get_absolute_url }}" style="text-decoration:none;color:inherit;">
+      <div class="card book-card">
+        <div class="book-cover">
+          {% if book.cover_image %}
+            <img src="{{ book.cover_image.url }}" alt="{{ book.title }}">
+          {% else %}
+            <div class="book-cover-placeholder">📖</div>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <div class="book-title">{{ book.title }}</div>
+          <div class="book-author">{{ book.author }}</div>
+          <div class="book-meta">
+            {% if book.avg_rating %}
+            <span class="stars">
+              {% for i in "12345" %}
+                {% if forloop.counter <= book.avg_rating|floatformat:"0"|add:"0" %}
+                  <span class="star-full"></span>
+                {% else %}
+                  <span class="star-empty"></span>
+                {% endif %}
+              {% endfor %}
+            </span>
+            <span class="rating-num">{{ book.avg_rating|floatformat:1 }}</span>
+            {% endif %}
+            <span class="genre-badge">{{ book.get_genre_display }}</span>
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- RECENTLY ADDED -->
+<section style="margin-bottom:3rem;">
+  <div class="section-title">
+    📚 Recently Added
+    <a href="{% url 'book_list' %}">All books →</a>
+  </div>
+  {% if recent_books %}
+  <div class="grid-4">
+    {% for book in recent_books %}
+    <a href="{{ book.get_absolute_url }}" style="text-decoration:none;color:inherit;">
+      <div class="card book-card">
+        <div class="book-cover">
+          {% if book.cover_image %}
+            <img src="{{ book.cover_image.url }}" alt="{{ book.title }}">
+          {% else %}
+            <div class="book-cover-placeholder">📖</div>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <div class="book-title">{{ book.title }}</div>
+          <div class="book-author">{{ book.author }}</div>
+          <div class="book-meta">
+            {% if book.avg_rating %}
+            <span class="stars">
+              {% for i in "12345" %}
+                {% if forloop.counter <= book.avg_rating|floatformat:"0"|add:"0" %}
+                  <span class="star-full"></span>
+                {% else %}
+                  <span class="star-empty"></span>
+                {% endif %}
+              {% endfor %}
+            </span>
+            <span class="rating-num">{{ book.avg_rating|floatformat:1 }}</span>
+            {% else %}
+            <span class="rating-num" style="color:var(--text-muted);">No reviews yet</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📚</div>
+    <p>No books yet. Be the first to add one!</p>
+    {% if user.is_authenticated %}
+    <a href="{% url 'book_add' %}" class="btn btn-primary">Add a Book</a>
+    {% else %}
+    <a href="{% url 'register' %}" class="btn btn-primary">Join & Add Books</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<!-- RECENT REVIEWS -->
+{% if recent_reviews %}
+<section>
+  <div class="section-title">
+    💬 Latest Reviews
+    <a href="{% url 'community' %}">Community →</a>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+    {% for review in recent_reviews %}
+    <div class="review-card">
+      <div class="review-card-header">
+        <div class="avatar avatar-sm" style="flex-shrink:0;">{{ review.user.username|first|upper }}</div>
+        <div class="review-card-meta">
+          <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+            <a href="{% url 'profile' review.user.username %}" class="review-card-user">{{ review.user.username }}</a>
+            <span style="color:var(--text-muted);font-size:0.82rem;">reviewed</span>
+            <a href="{{ review.book.get_absolute_url }}" style="font-weight:600;font-size:0.9rem;">{{ review.book.title }}</a>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.2rem;">
+            <span class="stars" style="font-size:0.85rem;">
+              {% for i in "12345" %}
+                {% if forloop.counter <= review.rating %}
+                  <span class="star-full"></span>
+                {% else %}
+                  <span class="star-empty"></span>
+                {% endif %}
+              {% endfor %}
+            </span>
+            <span class="review-card-date">{{ review.created_at|timesince }} ago</span>
+          </div>
+        </div>
+      </div>
+      <div class="review-card-title">{{ review.title }}</div>
+      <div class="review-card-body">{{ review.body|truncatewords:40 }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

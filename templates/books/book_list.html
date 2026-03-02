@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Browse Books — Folio{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Browse Books</h1>
+  <p>{{ total }} book{{ total|pluralize }} in our library</p>
+</div>
+
+<!-- SEARCH & FILTER -->
+<form method="GET" class="search-bar">
+  <div class="form-group" style="flex:2;">
+    {{ form.q }}
+  </div>
+  <div class="form-group" style="flex:1;">
+    {{ form.genre }}
+  </div>
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <button type="submit" class="btn btn-primary">Search</button>
+    <a href="{% url 'book_list' %}" class="btn btn-secondary">Clear</a>
+  </div>
+</form>
+
+<!-- SORT -->
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+  <span style="font-size:0.85rem;color:var(--text-muted);">Sort by:</span>
+  {% for label, value in sort_options %}{% endfor %}
+  <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.genre %}genre={{ request.GET.genre }}&{% endif %}sort=newest" class="btn btn-sm {% if sort == 'newest' %}btn-primary{% else %}btn-secondary{% endif %}">Newest</a>
+  <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.genre %}genre={{ request.GET.genre }}&{% endif %}sort=rating" class="btn btn-sm {% if sort == 'rating' %}btn-primary{% else %}btn-secondary{% endif %}">Top Rated</a>
+  <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.genre %}genre={{ request.GET.genre }}&{% endif %}sort=reviews" class="btn btn-sm {% if sort == 'reviews' %}btn-primary{% else %}btn-secondary{% endif %}">Most Reviewed</a>
+  <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.genre %}genre={{ request.GET.genre }}&{% endif %}sort=title" class="btn btn-sm {% if sort == 'title' %}btn-primary{% else %}btn-secondary{% endif %}">A–Z</a>
+  {% if user.is_authenticated %}
+  <a href="{% url 'book_add' %}" class="btn btn-sm btn-outline" style="margin-left:auto;">+ Add Book</a>
+  {% endif %}
+</div>
+
+{% if books %}
+<div class="grid-4">
+  {% for book in books %}
+  <a href="{{ book.get_absolute_url }}" style="text-decoration:none;color:inherit;">
+    <div class="card book-card" style="height:100%;">
+      <div class="book-cover">
+        {% if book.cover_image %}
+          <img src="{{ book.cover_image.url }}" alt="{{ book.title }}">
+        {% else %}
+          <div class="book-cover-placeholder">📖</div>
+        {% endif %}
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;flex:1;">
+        <div class="book-title" style="margin-bottom:0.2rem;">{{ book.title }}</div>
+        <div class="book-author">by {{ book.author }}</div>
+        {% if book.description %}
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.6rem;line-height:1.5;flex:1;">{{ book.description|truncatewords:15 }}</div>
+        {% endif %}
+        <div class="book-meta" style="margin-top:auto;">
+          {% if book.avg_rating %}
+          <span class="stars" style="font-size:0.85rem;">
+            {% for i in "12345" %}
+              {% if forloop.counter <= book.avg_rating|floatformat:"0"|add:"0" %}
+                <span class="star-full"></span>
+              {% else %}
+                <span class="star-empty"></span>
+              {% endif %}
+            {% endfor %}
+          </span>
+          <span class="rating-num">{{ book.avg_rating|floatformat:1 }} ({{ book.num_reviews }})</span>
+          {% else %}
+          <span style="font-size:0.78rem;color:var(--text-muted);">No reviews yet</span>
+          {% endif %}
+        </div>
+        <div style="margin-top:0.5rem;">
+          <span class="genre-badge">{{ book.get_genre_display }}</span>
+        </div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🔍</div>
+  <p>No books found matching your search.</p>
+  <a href="{% url 'book_list' %}" class="btn btn-secondary">Clear search</a>
+</div>
+{% endif %}
+{% endblock %}

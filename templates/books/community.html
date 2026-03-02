@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Community — Folio{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Community</h1>
+  <p>Meet our passionate readers and see what they're reviewing.</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:2rem;align-items:start;">
+  <!-- RECENT REVIEWS -->
+  <div>
+    <div class="section-title">Latest Reviews</div>
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      {% for review in recent_reviews %}
+      <div class="review-card">
+        <div class="review-card-header">
+          <div class="avatar avatar-sm" style="flex-shrink:0;">{{ review.user.username|first|upper }}</div>
+          <div class="review-card-meta" style="flex:1;">
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+              <a href="{% url 'profile' review.user.username %}" class="review-card-user">{{ review.user.username }}</a>
+              <span style="color:var(--text-muted);font-size:0.82rem;">reviewed</span>
+              <a href="{{ review.book.get_absolute_url }}" style="font-weight:600;font-size:0.9rem;">{{ review.book.title }}</a>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.2rem;">
+              <span class="stars" style="font-size:0.82rem;">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= review.rating %}
+                    <span class="star-full"></span>
+                  {% else %}
+                    <span class="star-empty"></span>
+                  {% endif %}
+                {% endfor %}
+              </span>
+              <span class="review-card-date">{{ review.created_at|timesince }} ago</span>
+            </div>
+          </div>
+        </div>
+        <div class="review-card-title">{{ review.title }}</div>
+        <div class="review-card-body">{{ review.body|truncatewords:50 }}</div>
+        <div style="margin-top:0.5rem;">
+          <a href="{{ review.book.get_absolute_url }}#review-{{ review.pk }}" style="font-size:0.85rem;">Read full review →</a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <div class="empty-icon">💬</div>
+        <p>No reviews yet. Be the first!</p>
+        {% if not user.is_authenticated %}
+        <a href="{% url 'register' %}" class="btn btn-primary">Join Folio</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- TOP MEMBERS SIDEBAR -->
+  <div>
+    <div class="section-title" style="font-size:1.1rem;">Top Members</div>
+    <div style="background:#fff;border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+      {% for member in members %}
+      <a href="{% url 'profile' member.username %}" style="display:flex;align-items:center;gap:0.85rem;padding:0.85rem 1.1rem;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;transition:background 0.15s;">
+        <div class="avatar avatar-sm" style="flex-shrink:0;background:var(--cream);color:var(--amber);font-weight:700;">{{ member.username|first|upper }}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:0.9rem;color:var(--ink);">{{ member.username }}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);">{{ member.review_count }} review{{ member.review_count|pluralize }}</div>
+        </div>
+        {% if forloop.counter == 1 %}<span style="font-size:0.75rem;background:var(--amber);color:#fff;padding:0.15rem 0.5rem;border-radius:10px;">Top</span>{% endif %}
+      </a>
+      {% empty %}
+      <div style="padding:1.5rem;text-align:center;color:var(--text-muted);">No members yet.</div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:1.5rem;background:#fff;border-radius:12px;padding:1.25rem;box-shadow:var(--shadow);text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">📖</div>
+      <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">Share your love of books with thousands of readers.</p>
+      {% if not user.is_authenticated %}
+      <a href="{% url 'register' %}" class="btn btn-primary" style="width:100%;">Join Folio Free</a>
+      {% else %}
+      <a href="{% url 'book_add' %}" class="btn btn-primary" style="width:100%;">+ Add a Book</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
